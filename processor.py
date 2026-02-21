@@ -34,59 +34,66 @@ def time_to_seconds(t_str):
         return 0.0
 
 def get_video_info(url):
-    """MASTER ANTI-BLOCK FETCH ENGINE (iOS Emulation)"""
+    """NO-FAIL METADATA FETCH ENGINE"""
     if "youtu.be/" in url:
         v_id = url.split("youtu.be/")[1].split("?")[0]
         url = f"https://www.youtube.com/watch?v={v_id}"
 
-    # Check for cookies
     cookie_file = "youtube_cookies.txt"
     if not os.path.exists(cookie_file) and os.path.exists("youtube_cookies.txt.txt"):
         cookie_file = "youtube_cookies.txt.txt"
 
-    ydl_opts = {
+    common_opts = {
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
         'no_playlist': True,
-        # THE MASTER KEY: Emulate iOS client (very hard for YouTube to block)
-        'extractor_args': {'youtube': {'player_client': ['ios']}},
-        'youtube_include_dash_manifest': True,
-        'youtube_include_hls_manifest': True,
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
     }
-
     if os.path.exists(cookie_file):
-        ydl_opts['cookiefile'] = cookie_file
-        print(f"RAILWAY: Using cookies from {cookie_file}")
+        common_opts['cookiefile'] = cookie_file
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+    # STEP 1: Try full extraction
+    with yt_dlp.YoutubeDL(common_opts) as ydl:
         try:
-            print(f"RAILWAY: Attempting iOS-style fetch for {url}")
+            print(f"RAILWAY: Phase 1 Fetch for {url}")
             info = ydl.extract_info(url, download=False)
             
-            if not info:
-                return {"error": "YouTube is busy. Try again in 2 seconds."}
-            
-            if 'entries' in info: info = info['entries'][0]
-
-            formats = info.get("formats", [])
-            heights = sorted(list(set([f.get("height") for f in formats if f.get("height")])))
-            
-            # If still no heights, provide standard ones
-            if not heights: heights = [360, 480, 720, 1080]
-            
-            return {
-                "id": info.get("id"),
-                "title": info.get("title"),
-                "thumbnail": info.get("thumbnail"),
-                "duration": info.get("duration"),
-                "duration_str": str(timedelta(seconds=info.get("duration") or 0)),
-                "avail_heights": heights
-            }
+            if info:
+                if 'entries' in info: info = info['entries'][0]
+                formats = info.get("formats", [])
+                heights = sorted(list(set([f.get("height") for f in formats if f.get("height")])))
+                if not heights: heights = [360, 480, 720, 1080]
+                
+                return {
+                    "id": info.get("id"),
+                    "title": info.get("title"),
+                    "thumbnail": info.get("thumbnail"),
+                    "duration": info.get("duration"),
+                    "duration_str": str(timedelta(seconds=info.get("duration") or 0)),
+                    "avail_heights": heights
+                }
         except Exception as e:
-            print(f"RAILWAY FETCH ERROR: {str(e)}")
-            # Try a bare-minimum fallback
-            return {"error": "Format issue. Try a different video or link."}
+            print(f"RAILWAY Phase 1 Failed (Expected): {str(e)}")
+
+    # STEP 2: Fallback to Flat Extraction (Bypasses format blocks)
+    common_opts['extract_flat'] = True
+    with yt_dlp.YoutubeDL(common_opts) as ydl:
+        try:
+            print(f"RAILWAY: Phase 2 (Flat) Fetch for {url}")
+            info = ydl.extract_info(url, download=False)
+            if info:
+                return {
+                    "id": info.get("id"),
+                    "title": info.get("title"),
+                    "thumbnail": info.get("thumbnail") or f"https://i.ytimg.com/vi/{info.get('id')}/hqdefault.jpg",
+                    "duration": info.get("duration"),
+                    "duration_str": str(timedelta(seconds=info.get("duration") or 0)),
+                    "avail_heights": [360, 480, 720, 1080] # Fallback heights
+                }
+        except Exception as e:
+            print(f"RAILWAY Phase 2 Failed: {str(e)}")
+            return {"error": "YouTube is blocking connection. Try again."}
 
 def process_video(url, mode='trim', start_time=None, end_time=None, quality_height=720):
     """ULTRA-TURBO INSTANT ENGINE"""
@@ -94,12 +101,10 @@ def process_video(url, mode='trim', start_time=None, end_time=None, quality_heig
     e_sec = time_to_seconds(end_time)
     duration_sec = e_sec - s_sec
 
-    # Options for fast extraction
     ydl_opts = {
         'format': f'bestvideo[height<={quality_height}][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
         'quiet': True,
         'nocheckcertificate': True,
-        'extractor_args': {'youtube': {'player_client': ['ios']}},
     }
     
     cookie_file = "youtube_cookies.txt"
@@ -139,4 +144,4 @@ def process_video(url, mode='trim', start_time=None, end_time=None, quality_heig
 
     except Exception as e:
         print(f"RAILWAY PROCESS ERROR: {str(e)}")
-        return {"error": f"Turbo Fail: {str(e)[:50]}"}
+        return {"error": f"Download Fail: YouTube is restricting this video."}
