@@ -32,19 +32,35 @@ def time_to_seconds(t_str):
         return 0.0
 
 def get_video_info(url):
-    """Fastest metadata fetch."""
+    """Ultra-robust metadata fetcher."""
+    # Clean youtu.be links
+    if "youtu.be/" in url:
+        v_id = url.split("youtu.be/")[1].split("?")[0]
+        url = f"https://www.youtube.com/watch?v={v_id}"
+
     ydl_opts = {
         'quiet': True,
         'no_warnings': True,
-        'youtube_include_dash_manifest': False,
+        'nocheckcertificate': True,
+        'ignoreerrors': False,
         'no_playlist': True,
-        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+        'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         try:
             info = ydl.extract_info(url, download=False)
+            if not info:
+                return {"error": "YouTube blocked the request. Please try again or use a different video."}
+            
+            # Handle potential playlist/entries
+            if 'entries' in info:
+                info = info['entries'][0]
+
             formats = info.get("formats", [])
             heights = sorted(list(set([f.get("height") for f in formats if f.get("height")])))
+            
+            # Default heights if none found
+            if not heights: heights = [360, 480, 720, 1080]
             return {
                 "id": info.get("id"),
                 "title": info.get("title"),

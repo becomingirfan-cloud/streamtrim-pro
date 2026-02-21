@@ -8,9 +8,13 @@ import time
 
 app = FastAPI()
 
+# Smart Discovery: Works on Local, Railway, and Hugging Face
+static_dir = "static" if os.path.exists("static") else "."
+templates_dir = "templates" if os.path.exists("templates") else "."
+
 # Mount static files and templates
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
+templates = Jinja2Templates(directory=templates_dir)
 
 # Ensure downloads directory exists
 if not os.path.exists("downloads"):
@@ -35,7 +39,12 @@ async def home(request: Request):
 
 @app.post("/info")
 async def get_info(url: str = Form(...)):
+    print(f"FETCH REQUEST: {url}")
     info = processor.get_video_info(url)
+    if "error" in info:
+        print(f"FETCH ERROR: {info['error']}")
+    else:
+        print(f"FETCH SUCCESS: {info.get('title')}")
     return info
 
 @app.post("/trim")

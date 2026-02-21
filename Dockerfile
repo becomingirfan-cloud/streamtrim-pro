@@ -19,5 +19,5 @@ COPY . .
 ENV PORT=8000
 EXPOSE 8000
 
-# Start App
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+# Start App with Dynamic Port for Railway
+CMD uvicorn app:app --host 0.0.0.0 --port $PORT
