@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamTrim | #1 YouTube Video Trimmer & Downloader - Cut & Save YT Clips</title>
+
+    <!-- SEO Meta Tags -->
+    <meta name="description"
+        content="StreamTrim is the premier professional tool to trim YouTube videos online. Download YouTube videos in 4K/HD, convert YouTube to MP3, and cut segments fast and free. No registration required.">
+    <meta name="keywords"
+        content="YouTube video trimmer, YouTube downloader, trim YouTube video, download YouTube video, YouTube video cutter, YouTube to MP4, YouTube to MP3, 4K YouTube downloader, YouTube segment extractor, free YouTube downloader online">
+    <meta name="author" content="StreamTrim">
+    <meta name="robots" content="index, follow">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://streamtrim.com/">
+    <meta property="og:title" content="StreamTrim | Best YouTube Video Trimmer & Downloader">
+    <meta property="og:description"
+        content="Trim, download, and convert YouTube videos in high quality instantly. The fastest online YouTube cutter and downloader.">
+    <meta property="og:image" content="/static/og-image.jpg">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:title" content="StreamTrim | YouTube Video Trimmer & Downloader">
+    <meta property="twitter:description" content="The fastest way to cut and download YouTube videos and audio online.">
+
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="shortcut icon" href="/static/favicon.png" type="image/png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="logo-container-main">
+                <img src="/static/logo.png" alt="StreamTrim Logo" class="main-logo-img"
+                    onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='flex'">
+                <div id="logo-fallback" class="logo-group"
+                    style="display: none; align-items: center; justify-content: center; gap: 10px;">
+                    <i data-lucide="youtube" style="color:red; width:32px; height:32px;"></i>
+                    <h1 style="margin:0; font-size: 2.2rem;">StreamTrim</h1>
+                </div>
+            </div>
+            <p class="subtitle" id="main-subtitle">The #1 Professional tool to <strong>Trim</strong>,
+                <strong>Download</strong> and <strong>Convert</strong> YouTube videos instantly.
+            </p>
+        </header>
+
+        <!-- Dynamic SEO Heading -->
+        <h2 id="seo-dynamic-heading"
+            style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0;">
+            Best YouTube Video Trimmer & Downloader
+        </h2>
+
+        <!-- Hero Actions -->
+        <div class="hero-actions" id="hero-actions">
+            <button class="hero-btn" data-mode="trim">
+                <div class="btn-logo-container">
+                    <div class="yt-play-btn"></div>
+                    <i data-lucide="scissors" class="overlay-icon"></i>
+                </div>
+                <span>Trim YouTube Video</span>
+                <small>Cut specific segments</small>
+            </button>
+            <button class="hero-btn" data-mode="full">
+                <div class="btn-logo-container">
+                    <div class="yt-play-btn"></div>
+                    <i data-lucide="video" class="overlay-icon"></i>
+                </div>
+                <span>YouTube Video</span>
+                <small>Full quality MP4</small>
+            </button>
+            <button class="hero-btn" data-mode="audio">
+                <div class="btn-logo-container">
+                    <div class="yt-play-btn"></div>
+                    <i data-lucide="music" class="overlay-icon"></i>
+                </div>
+                <span>YouTube Audio</span>
+                <small>Best MP3/AAC</small>
+            </button>
+        </div>
+
+        <div class="input-section" id="input-section" style="display: none;">
+            <div class="back-btn" id="back-to-modes">
+                <i data-lucide="arrow-left"></i> Change Mode
+            </div>
+            <div class="input-group">
+                <input type="text" id="youtube-url" placeholder="Paste YouTube Video URL here..." autocomplete="off">
+            </div>
+            <button class="btn btn-primary" id="fetch-btn">
+                <i data-lucide="search"></i> <span id="fetch-btn-text">Fetch Video</span>
+            </button>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="premium-loader">
+                <div class="spinner"></div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="progress-fill"></div>
+                </div>
+            </div>
+            <p id="loading-text">Analyzing video metadata...</p>
+        </div>
+
+        <div class="video-info" id="video-info" style="display: none;">
+            <div class="info-card" id="info-card">
+                <img src="" alt="Thumbnail" class="thumbnail" id="thumb">
+                <div class="info-details">
+                    <h3 id="video-title">Video Title</h3>
+                    <p class="duration">Duration: <span id="video-duration">0:00</span></p>
+                </div>
+            </div>
+
+            <div class="card controls-card" id="controls-card" style="display: none;">
+                <div class="tabs">
+                    <button class="tab-btn active" data-mode="trim">
+                        <i data-lucide="scissors"></i>
+                        Trim Video
+                    </button>
+                    <button class="tab-btn" data-mode="full">
+                        <i data-lucide="video"></i>
+                        Full Video
+                    </button>
+                    <button class="tab-btn" data-mode="audio">
+                        <i data-lucide="music"></i>
+                        Audio Only
+                    </button>
+                </div>
+
+                <div class="control-group" id="trim-controls">
+                    <div class="control-item">
+                        <label for="start-time">Start Time (e.g., 01:20 or 80)</label>
+                        <input type="text" id="start-time" placeholder="00:00">
+                    </div>
+                    <div class="control-item">
+                        <label for="end-time">End Time (e.g., 02:40 or 160)</label>
+                        <input type="text" id="end-time" placeholder="00:10">
+                    </div>
+                </div>
+
+                <div class="control-item" style="margin-bottom: 30px;" id="quality-control">
+                    <label for="quality">Download Quality</label>
+                    <select id="quality">
+                        <option value="2160">2160p (4K)</option>
+                        <option value="1440">1440p (2K)</option>
+                        <option value="1080" selected>1080p (Full HD)</option>
+                        <option value="720">720p (HD)</option>
+                        <option value="480">480p</option>
+                        <option value="360">360p</option>
+                    </select>
+                </div>
+
+                <button class="btn btn-primary" id="trim-btn">
+                    <i data-lucide="download"></i>
+                    <span id="btn-text">Trim & Download</span>
+                </button>
+
+                <div class="error" id="error-msg"></div>
+            </div>
+        </div>
+        <div class="seo-content" id="seo-info">
+            <!-- Features Showcase -->
+            <div class="promo-section">
+                <div class="feature-badge">PREMIUM FEATURES</div>
+                <h2>Why Professionals Choose StreamTrim</h2>
+                <div class="promo-grid">
+                    <div class="promo-item">
+                        <i data-lucide="zap"></i>
+                        <h4>Ultra Fast</h4>
+                        <p>Server-side rendering for instant clips.</p>
+                    </div>
+                    <div class="promo-item">
+                        <i data-lucide="shield-check"></i>
+                        <h4>100% Secure</h4>
+                        <p>No ads, no tracking, just your video.</p>
+                    </div>
+                    <div class="promo-item">
+                        <i data-lucide="layout"></i>
+                        <h4>Universal</h4>
+                        <p>Perfect for Reels, TikTok, and Shorts.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="seo-section">
+                <h2>How to Trim and Download YouTube Videos?</h2>
+                <div class="steps-grid">
+                    <div class="step-card">
+                        <span class="step-num">1</span>
+                        <p><strong>Paste URL:</strong> Copy any YouTube link and paste it into the box above.</p>
+                    </div>
+                    <div class="step-card">
+                        <span class="step-num">2</span>
+                        <p><strong>Set Times:</strong> Choose your start/end points or just download the full video.</p>
+                    </div>
+                    <div class="step-card">
+                        <span class="step-num">3</span>
+                        <p><strong>Download:</strong> Select quality (up to 4K) and click download. It's that fast!</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="seo-section faq">
+                <h2>Frequently Asked Questions</h2>
+                <div class="faq-item">
+                    <h3>Is it possible to download YouTube audio only?</h3>
+                    <p>Yes! With StreamTrim, you can easily switch to the "Audio Only" tab to extract high-quality
+                        MP3/AAC audio from any YouTube video in seconds.</p>
+                </div>
+                <div class="faq-item">
+                    <h3>Can I rank this as the best YouTube video downloader?</h3>
+                    <p>StreamTrim is designed for speed and quality. Unlike other tools, we offer 4K quality, precise
+                        trimming, and universal playback compatibility (H.264/AAC).</p>
+                </div>
+                <div class="faq-item">
+                    <h3>Do I need to install anything for trimmed video for YouTube?</h3>
+                    <p>No, StreamTrim is a fully browser-based tool. You don't need any software or extensions to cut
+                        and download YouTube videos.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-links">
+            <a href="#">Privacy</a> | <a href="#">Terms</a> | <a href="#">Contact</a>
+        </div>
+        <p>&copy; 2026 StreamTrim - The Ultimate YouTube Trimmer & Downloader</p>
+    </footer>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        let currentUrl = '';
+        let currentMode = 'trim';
+
+        const urlInput = document.getElementById('youtube-url');
+        const fetchBtn = document.getElementById('fetch-btn');
+        const videoInfo = document.getElementById('video-info');
+        const infoCard = document.getElementById('info-card');
+        const controlsCard = document.getElementById('controls-card');
+        const loading = document.getElementById('loading');
+        const loadingText = document.getElementById('loading-text');
+        const errorMsg = document.getElementById('error-msg');
+        const trimBtn = document.getElementById('trim-btn');
+        const btnText = document.getElementById('btn-text');
+
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const trimControls = document.getElementById('trim-controls');
+        const qualityControl = document.getElementById('quality-control');
+
+        const heroActions = document.getElementById('hero-actions');
+        const inputSection = document.getElementById('input-section');
+        const heroBtns = document.querySelectorAll('.hero-btn');
+        const backBtn = document.getElementById('back-to-modes');
+        const fetchBtnText = document.getElementById('fetch-btn-text');
+
+        // Hero Selection
+        heroBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const mode = btn.dataset.mode;
+                currentMode = mode;
+
+                // Switch Tabs
+                tabBtns.forEach(b => {
+                    b.classList.toggle('active', b.dataset.mode === mode);
+                });
+                updateUIControl(mode);
+
+                // Show/Hide sections
+                heroActions.style.display = 'none';
+                inputSection.style.display = 'block';
+
+                // Update text
+                if (mode === 'trim') {
+                    fetchBtnText.innerText = "Fetch for Trimming";
+                    document.getElementById('seo-dynamic-heading').innerText = "Best Tool for Trimmed Video for YouTube - Online & Fast";
+                } else if (mode === 'full') {
+                    fetchBtnText.innerText = "Fetch Full Video";
+                    document.getElementById('seo-dynamic-heading').innerText = "Download YouTube Video in 4K/1080p - High Quality MP4";
+                } else {
+                    fetchBtnText.innerText = "Fetch Audio Only";
+                    document.getElementById('seo-dynamic-heading').innerText = "Download YouTube Audio - Fast MP3/AAC Extraction";
+                }
+            });
+        });
+
+        backBtn.addEventListener('click', () => {
+            heroActions.style.display = 'grid';
+            inputSection.style.display = 'none';
+            videoInfo.style.display = 'none';
+            document.getElementById('seo-dynamic-heading').innerText = "Best YouTube Video Trimmer & Downloader";
+        });
+
+        function updateUIControl(mode) {
+            if (mode === 'trim') {
+                trimControls.style.display = 'grid';
+                qualityControl.style.display = 'block';
+                btnText.innerText = "Trim & Download";
+            } else if (mode === 'full') {
+                trimControls.style.display = 'none';
+                qualityControl.style.display = 'block';
+                btnText.innerText = "Download Full Video";
+            } else { // audio
+                trimControls.style.display = 'none';
+                qualityControl.style.display = 'none';
+                btnText.innerText = "Download Audio Only";
+            }
+        }
+
+        // Tab Switching
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                tabBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentMode = btn.dataset.mode;
+                updateUIControl(currentMode);
+            });
+        });
+
+        fetchBtn.addEventListener('click', async () => {
+            const url = urlInput.value.trim();
+            if (!url) return;
+
+            // Reset UI
+            errorMsg.style.display = 'none';
+            videoInfo.style.display = 'none';
+            infoCard.style.display = 'none';
+            controlsCard.style.display = 'none';
+            loading.style.display = 'block';
+            loadingText.innerText = "Analyzing video metadata...";
+            fetchBtn.disabled = true;
+
+            try {
+                const response = await fetch('/info', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `url=${encodeURIComponent(url)}`
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Server returned ${response.status}: ${errorText.substring(0, 100)}`);
+                }
+
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                // Update UI with info
+                document.getElementById('thumb').src = data.thumbnail;
+                document.getElementById('video-title').innerText = data.title;
+                document.getElementById('video-duration').innerText = data.duration_str;
+
+                // Initialize times
+                document.getElementById('start-time').value = "00:00";
+                document.getElementById('end-time').value = data.duration > 60 ? "01:00" : data.duration_str;
+                currentUrl = url;
+                videoInfo.style.display = 'block';
+                infoCard.style.display = 'flex';
+                controlsCard.style.display = 'block';
+
+                // AUTO SCROLL: Scroll to video controls after fetch
+                setTimeout(() => {
+                    videoInfo.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+
+            } catch (err) {
+                errorMsg.innerText = "Error: " + err.message;
+                errorMsg.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+                fetchBtn.disabled = false;
+            }
+        });
+
+        trimBtn.addEventListener('click', async () => {
+            const start = document.getElementById('start-time').value;
+            const end = document.getElementById('end-time').value;
+            const quality = document.getElementById('quality').value;
+
+            // Simple presence check for trim mode
+            if (currentMode === 'trim' && (!start || !end)) {
+                alert("Please enter start and end times.");
+                return;
+            }
+
+            errorMsg.style.display = 'none';
+            loading.style.display = 'block';
+            trimBtn.disabled = true;
+
+            // AUTO SCROLL: Scroll back to loading area when trimming starts
+            loading.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            // Reset progress bar animation
+            const progressFill = document.getElementById('progress-fill');
+            progressFill.style.animation = 'none';
+            progressFill.offsetHeight; // trigger reflow
+            progressFill.style.animation = 'loadingProgress 30s linear forwards';
+
+            const loadingTexts = [
+                "Fetching high-quality video streams...",
+                "Downloading audio track...",
+                "Trimming precisely to your timestamps...",
+                "Merging video and audio for universal playback...",
+                "Optimizing for mobile and desktop devices...",
+                "Almost there! Wrapping up your download...",
+                "Thank you for your patience! 🙏"
+            ];
+            let textIdx = 0;
+            loadingText.innerText = loadingTexts[0];
+            const textInterval = setInterval(() => {
+                textIdx = (textIdx + 1) % loadingTexts.length;
+                loadingText.innerText = loadingTexts[textIdx];
+            }, 4000);
+
+            const formData = new FormData();
+            formData.append('url', currentUrl);
+            formData.append('mode', currentMode);
+            if (currentMode === 'trim') {
+                formData.append('start', start);
+                formData.append('end', end);
+            }
+            if (currentMode !== 'audio') { // Quality is not applicable for audio only
+                formData.append('quality', quality);
+            }
+
+
+            try {
+                const response = await fetch('/trim', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                // Check if the response is JSON (error) or Blob (success)
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.includes("application/json")) {
+                    const data = await response.json();
+                    if (data.error) throw new Error(data.error);
+                }
+
+                if (!response.ok) {
+                    throw new Error("Server returned an error status");
+                }
+
+                // Handle file download
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = `StreamTrim_${Date.now()}.mp4`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+
+            } catch (err) {
+                errorMsg.innerText = "Error: " + err.message;
+                errorMsg.style.display = 'block';
+            } finally {
+                clearInterval(textInterval);
+                loading.style.display = 'none';
+                trimBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+
+</html>
