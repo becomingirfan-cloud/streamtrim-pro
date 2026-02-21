@@ -49,8 +49,14 @@ def get_video_info(url):
         'youtube_include_hls_manifest': False,
         'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
     }
-    if os.path.exists("youtube_cookies.txt"):
-        ydl_opts['cookiefile'] = 'youtube_cookies.txt'
+    # ULTIMATE BYPASS: Use cookies if available (Check for double extensions too)
+    cookie_file = "youtube_cookies.txt"
+    if not os.path.exists(cookie_file) and os.path.exists("youtube_cookies.txt.txt"):
+        cookie_file = "youtube_cookies.txt.txt"
+
+    if os.path.exists(cookie_file):
+        ydl_opts['cookiefile'] = cookie_file
+        print(f"DEBUG: Using cookies from {cookie_file}")
         
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         try:
