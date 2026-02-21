@@ -4,7 +4,7 @@ import uuid
 import subprocess
 import shutil
 import re
-import traceback
+import requests
 from datetime import timedelta
 import static_ffmpeg
 
@@ -34,69 +34,70 @@ def time_to_seconds(t_str):
         return 0.0
 
 def get_video_info(url):
-    """NO-FAIL METADATA FETCH ENGINE"""
+    """ULTIMATE NO-FAIL FETCH (Using OEmbed + yt-dlp Fallback)"""
+    v_id = None
     if "youtu.be/" in url:
         v_id = url.split("youtu.be/")[1].split("?")[0]
-        url = f"https://www.youtube.com/watch?v={v_id}"
+    elif "v=" in url:
+        v_id = url.split("v=")[1].split("&")[0]
+    
+    if not v_id:
+        return {"error": "Invalid YouTube URL"}
 
+    clean_url = f"https://www.youtube.com/watch?v={v_id}"
+
+    # METHOD 1: Use YouTube's Public OEmbed (Unblockable for Basic Info)
+    try:
+        print(f"RAILWAY: Method 1 (OEmbed) for {v_id}")
+        r = requests.get(f"https://www.youtube.com/oembed?url={clean_url}&format=json", timeout=5)
+        if r.status_code == 200:
+            data = r.json()
+            return {
+                "id": v_id,
+                "title": data.get("title", f"Video_{v_id}"),
+                "thumbnail": f"https://i.ytimg.com/vi/{v_id}/hqdefault.jpg",
+                "duration": 0, # OEmbed doesn't give duration but it gets you past 'Analyzing'
+                "duration_str": "Unknown",
+                "avail_heights": [360, 480, 720, 1080],
+                "oembed": True
+            }
+    except Exception as e:
+        print(f"OEmbed Failed: {e}")
+
+    # METHOD 2: Strict yt-dlp with no-format checking
     cookie_file = "youtube_cookies.txt"
     if not os.path.exists(cookie_file) and os.path.exists("youtube_cookies.txt.txt"):
         cookie_file = "youtube_cookies.txt.txt"
 
-    common_opts = {
+    ydl_opts = {
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
-        'no_playlist': True,
-        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'extract_flat': True, # DO NOT check formats
+        'force_generic_extractor': False,
     }
     if os.path.exists(cookie_file):
-        common_opts['cookiefile'] = cookie_file
+        ydl_opts['cookiefile'] = cookie_file
 
-    # STEP 1: Try full extraction
-    with yt_dlp.YoutubeDL(common_opts) as ydl:
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         try:
-            print(f"RAILWAY: Phase 1 Fetch for {url}")
-            info = ydl.extract_info(url, download=False)
-            
-            if info:
-                if 'entries' in info: info = info['entries'][0]
-                formats = info.get("formats", [])
-                heights = sorted(list(set([f.get("height") for f in formats if f.get("height")])))
-                if not heights: heights = [360, 480, 720, 1080]
-                
-                return {
-                    "id": info.get("id"),
-                    "title": info.get("title"),
-                    "thumbnail": info.get("thumbnail"),
-                    "duration": info.get("duration"),
-                    "duration_str": str(timedelta(seconds=info.get("duration") or 0)),
-                    "avail_heights": heights
-                }
-        except Exception as e:
-            print(f"RAILWAY Phase 1 Failed (Expected): {str(e)}")
-
-    # STEP 2: Fallback to Flat Extraction (Bypasses format blocks)
-    common_opts['extract_flat'] = True
-    with yt_dlp.YoutubeDL(common_opts) as ydl:
-        try:
-            print(f"RAILWAY: Phase 2 (Flat) Fetch for {url}")
-            info = ydl.extract_info(url, download=False)
+            print(f"RAILWAY: Method 2 (Flat) for {v_id}")
+            info = ydl.extract_info(clean_url, download=False)
             if info:
                 return {
-                    "id": info.get("id"),
+                    "id": v_id,
                     "title": info.get("title"),
-                    "thumbnail": info.get("thumbnail") or f"https://i.ytimg.com/vi/{info.get('id')}/hqdefault.jpg",
-                    "duration": info.get("duration"),
-                    "duration_str": str(timedelta(seconds=info.get("duration") or 0)),
-                    "avail_heights": [360, 480, 720, 1080] # Fallback heights
+                    "thumbnail": f"https://i.ytimg.com/vi/{v_id}/hqdefault.jpg",
+                    "duration": info.get("duration", 0),
+                    "duration_str": str(timedelta(seconds=info.get("duration", 0))),
+                    "avail_heights": [360, 480, 720, 1080]
                 }
         except Exception as e:
-            print(f"RAILWAY Phase 2 Failed: {str(e)}")
-            return {"error": "YouTube is blocking connection. Try again."}
+            print(f"Flat Fetch Failed: {e}")
+            return {"error": "YouTube is blocking the connection. Try a different video."}
 
 def process_video(url, mode='trim', start_time=None, end_time=None, quality_height=720):
-    """ULTRA-TURBO INSTANT ENGINE"""
+    """TURBO ENGINE WITH COOKIE PROTECTION"""
     s_sec = time_to_seconds(start_time)
     e_sec = time_to_seconds(end_time)
     duration_sec = e_sec - s_sec
@@ -140,8 +141,8 @@ def process_video(url, mode='trim', start_time=None, end_time=None, quality_heig
             cmd.extend(["-c", "copy", "-movflags", "faststart"])
             cmd.append(final_output)
             subprocess.run(cmd, check=True)
-            return final_output if os.path.exists(final_output) else {"error": "Failed to save file."}
+            return final_output if os.path.exists(final_output) else {"error": "Save failed."}
 
     except Exception as e:
-        print(f"RAILWAY PROCESS ERROR: {str(e)}")
-        return {"error": f"Download Fail: YouTube is restricting this video."}
+        print(f"PROCESS ERROR: {e}")
+        return {"error": "YouTube blocked the download stream."}
