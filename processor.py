@@ -23,7 +23,7 @@ except:
     FFPROBE = "ffprobe"
 
 def time_to_seconds(t_str):
-    if not t_str or t_str == "Unknown" or t_str == "00:00": return 0.0
+    if not t_str or ":" not in str(t_str): return 0.0
     try:
         parts = list(map(float, str(t_str).split(":")))
         if len(parts) == 1: return parts[0]
@@ -34,108 +34,98 @@ def time_to_seconds(t_str):
         return 0.0
 
 def get_video_info(url):
-    """GENUINE HD FETCH (Smart TV / TVHTML5 Emulation)"""
+    """GENUINE HD FETCH (OEmbed First, Then Background Data)"""
     v_id = None
     if "youtu.be/" in url: v_id = url.split("youtu.be/")[1].split("?")[0]
     elif "v=" in url: v_id = url.split("v=")[1].split("&")[0]
     if not v_id: return {"error": "Invalid URL"}
     clean_url = f"https://www.youtube.com/watch?v={v_id}"
 
-    # Optimized Options for Smart TV Emulation
-    ydl_opts = {
-        'quiet': True,
-        'no_warnings': True,
-        'nocheckcertificate': True,
-        'no_playlist': True,
-        'youtube_include_dash_manifest': True,
-        'youtube_include_hls_manifest': True,
-        # THE MAGIC KEY: Emulate Smart TV for HD Streams
-        'extractor_args': {'youtube': {'player_client': ['tvhtml5', 'android']}},
-    }
-    
-    cookie_file = "youtube_cookies.txt"
-    if not os.path.exists(cookie_file) and os.path.exists("youtube_cookies.txt.txt"):
-        cookie_file = "youtube_cookies.txt.txt"
-    if os.path.exists(cookie_file):
-        ydl_opts['cookiefile'] = cookie_file
-
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        try:
-            print(f"RAILWAY: Genuine Fetch for {v_id} (TV Mode)")
-            info = ydl.extract_info(clean_url, download=False)
-            if info:
-                formats = info.get("formats", [])
-                heights = sorted(list(set([f.get("height") for f in formats if f.get("height")])))
-                if not heights: heights = [360, 480, 720, 1080]
-                
-                return {
-                    "id": v_id,
-                    "title": info.get("title"),
-                    "thumbnail": f"https://i.ytimg.com/vi/{v_id}/maxresdefault.jpg",
-                    "duration": info.get("duration", 0),
-                    "duration_str": str(timedelta(seconds=info.get("duration", 0))),
-                    "avail_heights": heights
-                }
-        except Exception as e:
-            print(f"TV Mode Failed, Falling back to OEmbed: {e}")
-
-    # Fallback to OEmbed for UI Stability
+    # METHOD 1: Instant OEmbed for UI
     try:
         r = requests.get(f"https://www.youtube.com/oembed?url={clean_url}&format=json", timeout=5)
         if r.status_code == 200:
             data = r.json()
+            # Background Attempt for exact duration
+            duration_val = 0
+            dur_str = "00:00"
+            try:
+                with yt_dlp.YoutubeDL({'quiet':True, 'extract_flat':True}) as ydl:
+                    info_lite = ydl.extract_info(clean_url, download=False)
+                    duration_val = info_lite.get('duration', 0)
+                    dur_str = str(timedelta(seconds=duration_val))
+            except: pass
+
             return {
-                "id": v_id, "title": data.get("title"), "thumbnail": f"https://i.ytimg.com/vi/{v_id}/maxresdefault.jpg",
-                "duration": 0, "duration_str": "00:00", "avail_heights": [360, 480, 720, 1080]
+                "id": v_id,
+                "title": data.get("title"),
+                "thumbnail": f"https://i.ytimg.com/vi/{v_id}/maxresdefault.jpg",
+                "duration": duration_val,
+                "duration_str": dur_str,
+                "avail_heights": [360, 480, 720, 1080]
             }
     except: pass
-    return {"error": "YouTube is strictly blocking. Try again in 10s."}
+    return {"error": "YouTube blocked info fetch. Try again."}
 
 def process_video(url, mode='trim', start_time=None, end_time=None, quality_height=720):
-    """TURBO ENGINE WITH SMART TV AUTH"""
+    """GENUINE "AUTH-READY" TURBO ENGINE"""
     s_sec = time_to_seconds(start_time)
     e_sec = time_to_seconds(end_time)
     duration_sec = e_sec - s_sec if e_sec > s_sec else 0
 
-    ydl_opts = {
-        'format': f'bestvideo[height<={quality_height}][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
-        'quiet': True,
-        'no_warnings': True,
-        'nocheckcertificate': True,
-        # FORCE TV CLIENT FOR STREAMING
-        'extractor_args': {'youtube': {'player_client': ['tvhtml5', 'android']}},
-    }
-    
-    cookie_file = "youtube_cookies.txt"
-    if not os.path.exists(cookie_file) and os.path.exists("youtube_cookies.txt.txt"):
-        cookie_file = "youtube_cookies.txt.txt"
-    if os.path.exists(cookie_file):
-        ydl_opts['cookiefile'] = cookie_file
+    # These form selection strings are the most "Reliable" for Railway
+    fmts = [
+        f"bestvideo[height<={quality_height}][ext=mp4]+bestaudio[ext=m4a]/best[height<={quality_height}][ext=mp4]/best[ext=mp4]/best",
+        "best"
+    ]
 
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            print(f"DEBUG: Processing {url} with TV Mode (Genuine)")
-            info = ydl.extract_info(url, download=False)
-            
-            raw_title = info.get('title', 'Video')
-            clean_title = re.sub(r'[^\w\s-]', '', raw_title).strip().replace(' ', '_')
-            final_output = os.path.abspath(os.path.join("downloads", f"{clean_title}_{uuid.uuid4().hex[:4]}.mp4"))
-            
-            cmd = [FFMPEG_EXE, "-y", "-hide_banner", "-loglevel", "error"]
-            req_formats = info.get('requested_formats')
-            
-            if req_formats and len(req_formats) >= 2:
-                v_url, a_url = req_formats[0]['url'], req_formats[1]['url']
-                cmd.extend(["-ss", str(s_sec), "-t", str(duration_sec), "-i", v_url])
-                cmd.extend(["-ss", str(s_sec), "-t", str(duration_sec), "-i", a_url])
-                cmd.extend(["-c", "copy", "-movflags", "faststart", final_output])
-            else:
-                s_url = info.get('url') or info.get('formats', [{}])[-1].get('url')
-                cmd.extend(["-ss", str(s_sec), "-t", str(duration_sec), "-i", s_url])
-                cmd.extend(["-c", "copy", "-movflags", "faststart", final_output])
+    for fmt in fmts:
+        ydl_opts = {
+            'format': fmt,
+            'quiet': True,
+            'no_warnings': True,
+            'nocheckcertificate': True,
+            # THE SECRET FOR HD: Rotate clients until one unlocks
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['tvhtml5', 'ios', 'android', 'web'],
+                    'skip': ['dash', 'hls']
+                }
+            },
+        }
+        
+        cookie_file = "youtube_cookies.txt"
+        if os.path.exists(cookie_file): ydl_opts['cookiefile'] = cookie_file
 
-            subprocess.run(cmd, check=True)
-            return final_output if os.path.exists(final_output) else {"error": "Processing failed."}
-    except Exception as e:
-        print(f"PROCESS ERROR: {str(e)}")
-        return {"error": "YouTube blocked this HD stream. Try 720p."}
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                print(f"RAILWAY: Trying Genuine HD Fetch ({fmt})")
+                info = ydl.extract_info(url, download=False)
+                
+                raw_title = info.get('title', 'Video')
+                clean_title = re.sub(r'[^\w\s-]', '', raw_title).strip().replace(' ', '_')
+                final_output = os.path.abspath(os.path.join("downloads", f"{clean_title}_{uuid.uuid4().hex[:4]}.mp4"))
+                
+                cmd = [FFMPEG_EXE, "-y", "-hide_banner", "-loglevel", "error"]
+                req_formats = info.get('requested_formats')
+                
+                if req_formats and len(req_formats) >= 2:
+                    v_url, a_url = req_formats[0]['url'], req_formats[1]['url']
+                    cmd.extend(["-ss", str(s_sec), "-t", str(duration_sec), "-i", v_url])
+                    cmd.extend(["-ss", str(s_sec), "-t", str(duration_sec), "-i", a_url])
+                else:
+                    stream_url = info.get('url') or info.get('formats', [{}])[-1].get('url')
+                    if not stream_url: continue
+                    cmd.extend(["-ss", str(s_sec), "-t", str(duration_sec), "-i", stream_url])
+
+                cmd.extend(["-c", "copy", "-movflags", "faststart", final_output])
+                subprocess.run(cmd, check=True)
+                
+                if os.path.exists(final_output):
+                    print(f"RAILWAY: SUCCESS! File generated at {final_output}")
+                    return final_output
+        except Exception as e:
+            print(f"LOG: Format {fmt} failed: {str(e)[:50]}")
+            continue
+
+    return {"error": "Google blocked all HD streams. Try 720p or lower."}
