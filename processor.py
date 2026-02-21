@@ -4,6 +4,7 @@ import uuid
 import subprocess
 import shutil
 import re
+import traceback
 from datetime import timedelta
 import static_ffmpeg
 
@@ -33,7 +34,8 @@ def time_to_seconds(t_str):
         return 0.0
 
 def get_video_info(url):
-    """Military-grade anti-block metadata fetcher."""
+    """ADVANCED ANTI-BLOCK FETCH ENGINE"""
+    # Normalize youtu.be links
     if "youtu.be/" in url:
         v_id = url.split("youtu.be/")[1].split("?")[0]
         url = f"https://www.youtube.com/watch?v={v_id}"
@@ -48,26 +50,33 @@ def get_video_info(url):
         'youtube_include_dash_manifest': False,
         'youtube_include_hls_manifest': False,
         'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'socket_timeout': 15,
     }
-    # ULTIMATE BYPASS: Use cookies if available (Check for double extensions too)
+    
+    # Check for cookies (Handle both common names)
     cookie_file = "youtube_cookies.txt"
     if not os.path.exists(cookie_file) and os.path.exists("youtube_cookies.txt.txt"):
         cookie_file = "youtube_cookies.txt.txt"
 
     if os.path.exists(cookie_file):
         ydl_opts['cookiefile'] = cookie_file
-        print(f"DEBUG: Using cookies from {cookie_file}")
-        
+        print(f"RAILWAY LOG: Using Cookies from {cookie_file}")
+    else:
+        print("RAILWAY LOG: WARNING - No youtube_cookies.txt found in root!")
+
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         try:
+            print(f"RAILWAY: Fetching info for {url}")
             info = ydl.extract_info(url, download=False)
+            
             if not info:
-                return {"error": "YouTube blocked the request. Try again."}
+                return {"error": "YouTube is taking too long to respond. Try refreshing."}
             
             if 'entries' in info: info = info['entries'][0]
 
             formats = info.get("formats", [])
             heights = sorted(list(set([f.get("height") for f in formats if f.get("height")])))
+            if not heights: heights = [360, 480, 720, 1080]
             
             return {
                 "id": info.get("id"),
@@ -78,40 +87,41 @@ def get_video_info(url):
                 "avail_heights": heights
             }
         except Exception as e:
-            return {"error": str(e)}
+            err_msg = str(e)
+            print(f"RAILWAY FETCH ERROR: {err_msg}")
+            # Clean up error message for user
+            if "Sign in" in err_msg: return {"error": "YouTube blocked us. Please check your cookies."}
+            return {"error": f"YouTube Error: {err_msg[:100]}"}
 
 def process_video(url, mode='trim', start_time=None, end_time=None, quality_height=720):
-    """
-    ULTRA-TURBO INSTANT ENGINE (Sub-10 Seconds)
-    Uses direct stream copying to avoid re-encoding lag.
-    """
+    """ULTRA-TURBO INSTANT SEEKING ENGINE"""
     s_sec = time_to_seconds(start_time)
     e_sec = time_to_seconds(end_time)
     duration_sec = e_sec - s_sec
 
-    # Options for fast extraction
+    # Universal options for processing
     ydl_opts = {
         'format': f'bestvideo[height<={quality_height}][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
         'quiet': True,
         'nocheckcertificate': True,
     }
-    if os.path.exists("youtube_cookies.txt"):
-        ydl_opts['cookiefile'] = 'youtube_cookies.txt'
+    
+    cookie_file = "youtube_cookies.txt"
+    if not os.path.exists(cookie_file) and os.path.exists("youtube_cookies.txt.txt"):
+        cookie_file = "youtube_cookies.txt.txt"
+    if os.path.exists(cookie_file):
+        ydl_opts['cookiefile'] = cookie_file
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            # Single fetch for everything
             info = ydl.extract_info(url, download=False)
-            
-            # Setup naming
             raw_title = info.get('title', 'StreamTrim_Video')
             clean_title = re.sub(r'[^\w\s-]', '', raw_title).strip().replace(' ', '_')
             final_output = os.path.abspath(os.path.join("downloads", f"{clean_title}_{uuid.uuid4().hex[:4]}.mp4"))
             
-            # Start FFmpeg Command
             cmd = [FFMPEG_EXE, "-y", "-hide_banner", "-loglevel", "error"]
-            
             req_formats = info.get('requested_formats')
+            
             if req_formats and len(req_formats) >= 2:
                 v_url, a_url = req_formats[0]['url'], req_formats[1]['url']
                 if mode == 'trim':
@@ -127,21 +137,12 @@ def process_video(url, mode='trim', start_time=None, end_time=None, quality_heig
                     cmd.extend(["-i", stream_url])
 
             # THE SPEED SECRET: Stream Copy instead of Re-encode
-            # This makes processing 1-2 seconds regardless of video length.
-            if mode == 'audio':
-                cmd.extend(["-vn", "-c:a", "copy"]) # Instant audio extraction
-            else:
-                # Use copy for speed, with faststart for web playback
-                cmd.extend(["-c", "copy", "-movflags", "faststart"])
-
+            cmd.extend(["-c", "copy", "-movflags", "faststart"])
             cmd.append(final_output)
             
-            # Run FFmpeg
             subprocess.run(cmd, check=True)
-            
-            if os.path.exists(final_output):
-                return final_output
-            return {"error": "Failed to generate file."}
+            return final_output if os.path.exists(final_output) else {"error": "File not saved."}
 
     except Exception as e:
-        return {"error": f"Turbo Fail: {str(e)}"}
+        print(f"RAILWAY PROCESS ERROR: {str(e)}")
+        return {"error": f"Turbo Fail: {str(e)[:100]}"}
