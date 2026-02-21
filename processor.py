@@ -45,12 +45,9 @@ def get_video_info(url):
         'no_warnings': True,
         'nocheckcertificate': True,
         'no_playlist': True,
-        'extract_flat': False,
-        'skip_download': True,
-        'youtube_include_dash_manifest': False,
-        'youtube_include_hls_manifest': False,
+        'youtube_include_dash_manifest': True,
+        'youtube_include_hls_manifest': True,
         'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'socket_timeout': 15,
     }
     
     # Check for cookies (Handle both common names)
