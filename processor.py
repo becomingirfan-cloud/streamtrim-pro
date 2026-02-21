@@ -32,8 +32,8 @@ def time_to_seconds(t_str):
         return 0.0
 
 def get_video_info(url):
-    """Ultra-robust metadata fetcher."""
-    # Clean youtu.be links
+    """Military-grade anti-block metadata fetcher."""
+    # Handle youtu.be links
     if "youtu.be/" in url:
         v_id = url.split("youtu.be/")[1].split("?")[0]
         url = f"https://www.youtube.com/watch?v={v_id}"
@@ -42,22 +42,38 @@ def get_video_info(url):
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
-        'ignoreerrors': False,
         'no_playlist': True,
-        'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'extract_flat': False,
+        'skip_download': True,
+        'youtube_include_dash_manifest': False,
+        'youtube_include_hls_manifest': False,
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        # ANTI-BLOCK SECRET: Tell YouTube we are an Android Phone + Web Client
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'web'],
+                'skip': ['dash', 'hls']
+            }
+        },
+        'socket_timeout': 10, # Don't hang forever
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         try:
+            print(f"RAILWAY FETCH START: {url}")
             info = ydl.extract_info(url, download=False)
-            if not info:
-                return {"error": "YouTube blocked the request. Please try again or use a different video."}
             
-            # Handle potential playlist/entries
+            if not info:
+                return {"error": "YouTube blocked the request. Try again in 5 seconds."}
+            
+            print(f"RAILWAY FETCH SUCCESS: {info.get('title')}")
+            
+            # Handle entries (if playlist link used)
             if 'entries' in info:
                 info = info['entries'][0]
 
             formats = info.get("formats", [])
             heights = sorted(list(set([f.get("height") for f in formats if f.get("height")])))
+            if not heights: heights = [360, 480, 720, 1080]
             
             # Default heights if none found
             if not heights: heights = [360, 480, 720, 1080]
