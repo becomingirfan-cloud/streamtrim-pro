@@ -34,45 +34,45 @@ def time_to_seconds(t_str):
         return 0.0
 
 def get_video_info(url):
-    """ADVANCED ANTI-BLOCK FETCH ENGINE"""
-    # Normalize youtu.be links
+    """MASTER ANTI-BLOCK FETCH ENGINE (iOS Emulation)"""
     if "youtu.be/" in url:
         v_id = url.split("youtu.be/")[1].split("?")[0]
         url = f"https://www.youtube.com/watch?v={v_id}"
+
+    # Check for cookies
+    cookie_file = "youtube_cookies.txt"
+    if not os.path.exists(cookie_file) and os.path.exists("youtube_cookies.txt.txt"):
+        cookie_file = "youtube_cookies.txt.txt"
 
     ydl_opts = {
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
         'no_playlist': True,
+        # THE MASTER KEY: Emulate iOS client (very hard for YouTube to block)
+        'extractor_args': {'youtube': {'player_client': ['ios']}},
         'youtube_include_dash_manifest': True,
         'youtube_include_hls_manifest': True,
-        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
     }
-    
-    # Check for cookies (Handle both common names)
-    cookie_file = "youtube_cookies.txt"
-    if not os.path.exists(cookie_file) and os.path.exists("youtube_cookies.txt.txt"):
-        cookie_file = "youtube_cookies.txt.txt"
 
     if os.path.exists(cookie_file):
         ydl_opts['cookiefile'] = cookie_file
-        print(f"RAILWAY LOG: Using Cookies from {cookie_file}")
-    else:
-        print("RAILWAY LOG: WARNING - No youtube_cookies.txt found in root!")
+        print(f"RAILWAY: Using cookies from {cookie_file}")
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         try:
-            print(f"RAILWAY: Fetching info for {url}")
+            print(f"RAILWAY: Attempting iOS-style fetch for {url}")
             info = ydl.extract_info(url, download=False)
             
             if not info:
-                return {"error": "YouTube is taking too long to respond. Try refreshing."}
+                return {"error": "YouTube is busy. Try again in 2 seconds."}
             
             if 'entries' in info: info = info['entries'][0]
 
             formats = info.get("formats", [])
             heights = sorted(list(set([f.get("height") for f in formats if f.get("height")])))
+            
+            # If still no heights, provide standard ones
             if not heights: heights = [360, 480, 720, 1080]
             
             return {
@@ -84,23 +84,22 @@ def get_video_info(url):
                 "avail_heights": heights
             }
         except Exception as e:
-            err_msg = str(e)
-            print(f"RAILWAY FETCH ERROR: {err_msg}")
-            # Clean up error message for user
-            if "Sign in" in err_msg: return {"error": "YouTube blocked us. Please check your cookies."}
-            return {"error": f"YouTube Error: {err_msg[:100]}"}
+            print(f"RAILWAY FETCH ERROR: {str(e)}")
+            # Try a bare-minimum fallback
+            return {"error": "Format issue. Try a different video or link."}
 
 def process_video(url, mode='trim', start_time=None, end_time=None, quality_height=720):
-    """ULTRA-TURBO INSTANT SEEKING ENGINE"""
+    """ULTRA-TURBO INSTANT ENGINE"""
     s_sec = time_to_seconds(start_time)
     e_sec = time_to_seconds(end_time)
     duration_sec = e_sec - s_sec
 
-    # Universal options for processing
+    # Options for fast extraction
     ydl_opts = {
         'format': f'bestvideo[height<={quality_height}][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
         'quiet': True,
         'nocheckcertificate': True,
+        'extractor_args': {'youtube': {'player_client': ['ios']}},
     }
     
     cookie_file = "youtube_cookies.txt"
@@ -133,13 +132,11 @@ def process_video(url, mode='trim', start_time=None, end_time=None, quality_heig
                 else:
                     cmd.extend(["-i", stream_url])
 
-            # THE SPEED SECRET: Stream Copy instead of Re-encode
             cmd.extend(["-c", "copy", "-movflags", "faststart"])
             cmd.append(final_output)
-            
             subprocess.run(cmd, check=True)
-            return final_output if os.path.exists(final_output) else {"error": "File not saved."}
+            return final_output if os.path.exists(final_output) else {"error": "Failed to save file."}
 
     except Exception as e:
         print(f"RAILWAY PROCESS ERROR: {str(e)}")
-        return {"error": f"Turbo Fail: {str(e)[:100]}"}
+        return {"error": f"Turbo Fail: {str(e)[:50]}"}
