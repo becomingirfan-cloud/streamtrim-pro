@@ -4,3 +4,4 @@ python-multipart
 jinja2
 yt-dlp
 static-ffmpeg
+requests
